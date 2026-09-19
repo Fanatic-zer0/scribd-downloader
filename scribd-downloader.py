@@ -88,11 +88,20 @@ def convert_scribd_link(url):
         The embeddable content URL, or "Invalid Scribd URL" if no document id
         can be extracted.
     """
-    match = re.search(r"https://www\.scribd\.com/(?:document|doc)/(\d+)/", url)
-    if not match:
+    cleaned_url = url.strip()
+    parsed = urlparse(cleaned_url)
+    hostname = (parsed.hostname or "").lower().removeprefix("www.")
+    path_parts = [part for part in parsed.path.split("/") if part]
+
+    if (
+        hostname != "scribd.com"
+        or len(path_parts) < 2
+        or path_parts[0] not in {"document", "doc"}
+        or not path_parts[1].isdigit()
+    ):
         return "Invalid Scribd URL"
 
-    return f"https://www.scribd.com/embeds/{match.group(1)}/content"
+    return f"https://www.scribd.com/embeds/{path_parts[1]}/content"
 
 
 def get_filename_from_url(url):
@@ -1240,7 +1249,7 @@ def save_pdf_pages_individually(
 
 def main():
     """Run the exporter interactively."""
-    input_url = input("Input link Scribd: ").strip()
+    input_url = input("Input link Scribd: ").replace("\r", "").strip()
 
     converted_url = convert_scribd_link(input_url)
     pdf_filename = get_filename_from_url(input_url)
